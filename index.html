@@ -24,25 +24,27 @@ body {
     font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     background: #1e1e2e;
     color: #cdd6f4;
+    padding: 4px;
+    margin: 0;
     display: flex;
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
-    padding: 4px;
     overflow: hidden;
 }
 
 .frame {
-    background: #000;
-    border: 5px solid #000;
+    background: transparent;
+    border: none;
     border-radius: 15px;
-    margin: 0;
+    padding: 0;
     overflow: hidden;
 }
 
 .app {
     background: #313244;
     border-radius: 10px;
+    border: none;
     width: 100%;
     max-width: 420px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
@@ -170,10 +172,10 @@ select.param-unit:hover { border-color: #585b70; }
 }
 
 .params {
-    padding: 0 10px 4px;
+    padding: 0 20px 4px 10px;
 }
 
-@media (max-width: 440px) {
+@media (max-width: 420px) {
     body { padding: 0; overflow-y: auto; }
     .frame { border-width: 0; border-radius: 0; }
     .app { border-radius: 0; max-width: 100%; }
