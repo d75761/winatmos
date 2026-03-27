@@ -361,12 +361,12 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-altitude">
             <span class="param-label">Altitude</span>
-            <input class="param-value" id="val-altitude" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-altitude" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-altitude" onchange="onRowUnitChange('altitude')"><option value="US">ft</option><option value="SI">m</option></select>
         </div>
         <div class="param-row" id="row-pressAmb">
             <span class="param-label">Ambient Pressure</span>
-            <input class="param-value" id="val-pressAmb" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-pressAmb" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-pressAmb" onchange="onRowUnitChange('pressAmb')"><option value="US">psia</option><option value="SI">kPa</option></select>
         </div>
     </div>
@@ -378,22 +378,22 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-tempAmb">
             <span class="param-label">Ambient Temperature</span>
-            <input class="param-value" id="val-tempAmb" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-tempAmb" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-tempAmb" onchange="onRowUnitChange('tempAmb')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
         </div>
         <div class="param-row" id="row-tempStd">
             <span class="param-label">Std Day Temperature</span>
-            <input class="param-value" id="val-tempStd" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-tempStd" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-tempStd" onchange="onRowUnitChange('tempStd')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
         </div>
         <div class="param-row" id="row-deltaTemp">
             <span class="param-label">ΔT (Actual − Std)</span>
-            <input class="param-value" id="val-deltaTemp" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-deltaTemp" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-deltaTemp" onchange="onRowUnitChange('deltaTemp')"><option value="F">Δ°F</option><option value="R">Δ°R</option><option value="C">Δ°C</option><option value="K">ΔK</option></select>
         </div>
         <div class="param-row" id="row-sonicAmb">
             <span class="param-label">Speed of Sound</span>
-            <input class="param-value" id="val-sonicAmb" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-sonicAmb" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-sonicAmb" onchange="onRowUnitChange('sonicAmb')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
         </div>
     </div>
@@ -405,17 +405,17 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-densAmb">
             <span class="param-label">Ambient Density</span>
-            <input class="param-value" id="val-densAmb" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-densAmb" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-densAmb" onchange="onRowUnitChange('densAmb')"><option value="US">lbm/ft³</option><option value="SI">kg/m³</option></select>
         </div>
         <div class="param-row" id="row-relHumidity">
             <span class="param-label">Relative Humidity</span>
-            <input class="param-value" id="val-relHumidity" type="number" step="any" min="0" max="100" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-relHumidity" type="number" step="any" min="0" max="100" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <span class="param-unit" id="unit-relHumidity">%</span>
         </div>
         <div class="param-row" id="row-absHumidity">
             <span class="param-label">Absolute Humidity</span>
-            <input class="param-value" id="val-absHumidity" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-absHumidity" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-absHumidity" onchange="onRowUnitChange('absHumidity')"><option value="SI">g/m³</option><option value="US">gr/lb</option></select>
         </div>
     </div>
@@ -427,27 +427,27 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-mach">
             <span class="param-label">Mach Number</span>
-            <input class="param-value" id="val-mach" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-mach" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <span class="param-unit" id="unit-mach">—</span>
         </div>
         <div class="param-row" id="row-ias">
             <span class="param-label">Indicated Airspeed (IAS)</span>
-            <input class="param-value" id="val-ias" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-ias" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-ias" onchange="onRowUnitChange('ias')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
         </div>
         <div class="param-row" id="row-cas">
             <span class="param-label">Calibrated Airspeed (CAS)</span>
-            <input class="param-value" id="val-cas" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-cas" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-cas" onchange="onRowUnitChange('cas')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
         </div>
         <div class="param-row" id="row-eas">
             <span class="param-label">Equivalent Airspeed (EAS)</span>
-            <input class="param-value" id="val-eas" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-eas" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-eas" onchange="onRowUnitChange('eas')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
         </div>
         <div class="param-row" id="row-velocity">
             <span class="param-label">True Airspeed (TAS)</span>
-            <input class="param-value" id="val-velocity" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-velocity" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-velocity" onchange="onRowUnitChange('velocity')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
         </div>
     </div>
@@ -459,17 +459,17 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-tempTotal">
             <span class="param-label">Total Temperature</span>
-            <input class="param-value" id="val-tempTotal" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-tempTotal" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-tempTotal" onchange="onRowUnitChange('tempTotal')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
         </div>
         <div class="param-row" id="row-pressTotal">
             <span class="param-label">Total Pressure</span>
-            <input class="param-value" id="val-pressTotal" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-pressTotal" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-pressTotal" onchange="onRowUnitChange('pressTotal')"><option value="US">psia</option><option value="SI">kPa</option></select>
         </div>
         <div class="param-row" id="row-densTotal">
             <span class="param-label">Total Density</span>
-            <input class="param-value" id="val-densTotal" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-densTotal" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <select class="param-unit" id="unit-densTotal" onchange="onRowUnitChange('densTotal')"><option value="US">lbm/ft³</option><option value="SI">kg/m³</option></select>
         </div>
     </div>
@@ -481,17 +481,17 @@ span.param-unit {
     <div class="params">
         <div class="param-row" id="row-theta">
             <span class="param-label">θ (T/T_SL)</span>
-            <input class="param-value" id="val-theta" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-theta" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <span class="param-unit" id="unit-theta">—</span>
         </div>
         <div class="param-row" id="row-delta">
             <span class="param-label">δ (P/P_SL)</span>
-            <input class="param-value" id="val-delta" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-delta" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <span class="param-unit" id="unit-delta">—</span>
         </div>
         <div class="param-row" id="row-sigma">
             <span class="param-label">σ (ρ/ρ_SL)</span>
-            <input class="param-value" id="val-sigma" type="number" step="any" inputmode="decimal" oninput="markInput(this)">
+            <input class="param-value" id="val-sigma" type="number" step="any" inputmode="decimal" enterkeyhint="go" oninput="markInput(this)">
             <span class="param-unit" id="unit-sigma">—</span>
         </div>
     </div>
