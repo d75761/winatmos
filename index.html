@@ -43,7 +43,8 @@ body {
 .app {
     background: #313244;
     border-radius: 10px;
-    width: 420px;
+    width: 100%;
+    max-width: 420px;
     box-shadow: 0 4px 24px rgba(0,0,0,0.4);
     overflow: hidden;
 }
@@ -163,18 +164,28 @@ select.param-unit:hover { border-color: #585b70; }
     font-size: 12px;
     font-weight: 600;
     color: #89b4fa;
-    padding: 6px 16px 1px;
+    padding: 6px 10px 1px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .params {
-    padding: 0 16px 4px;
+    padding: 0 10px 4px;
+}
+
+@media (max-width: 440px) {
+    body { padding: 0; }
+    .frame { border-width: 0; border-radius: 0; }
+    .app { border-radius: 0; max-width: 100%; }
+    .header { padding: 8px 10px; }
+    .section-label { padding: 6px 10px 1px; }
+    .section-sep { margin: 1px 10px; }
+    .unit-toggle-bar { padding: 3px 10px; }
 }
 
 .param-row {
     display: grid;
-    grid-template-columns: 212px 108px 63px;
+    grid-template-columns: 1fr 90px 55px;
     align-items: center;
     gap: 3px 3px;
     padding: 2px 0;
@@ -307,7 +318,7 @@ span.param-unit {
 .section-sep {
     height: 1px;
     background: #45475a;
-    margin: 1px 16px;
+    margin: 1px 10px;
 }
 </style>
 </head>
