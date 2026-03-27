@@ -1717,6 +1717,7 @@ document.querySelectorAll(".param-value").forEach(el => {
         }
     });
     el.addEventListener("click", () => toggleInputSelection(el));
+    el.addEventListener("change", () => calculate());
 });
 document.addEventListener("keydown", e => {
     if (e.key === "Enter") {
