@@ -1,4 +1,4 @@
-const CACHE_NAME = 'winatmos-v1.7';
+const CACHE_NAME = 'winatmos-v1.8';
 const ASSETS = [
   './',
   './index.html',
