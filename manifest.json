@@ -1,0 +1,22 @@
+{
+  "name": "WinAtmos - Standard Day Calculator",
+  "short_name": "WinAtmos",
+  "description": "ISA 1976 Standard Atmosphere Calculator with humidity and airspeed",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e1e2e",
+  "theme_color": "#45475a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

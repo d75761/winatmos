@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#45475a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>WinAtmos — Standard Day Calculator</title>
+<!--
+WinAtmos application layout and behavior live in this file.
+- HTML defines the calculator structure and visible controls.
+- CSS defines the app styling and layout.
+- JavaScript implements the ISA, humidity, unit conversion, and airspeed calculations.
+
+The desktop executable is only a native WebView2 host that opens this page.
+-->
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 4px;
+    overflow: hidden;
+}
+
+.frame {
+    background: #000;
+    border: 5px solid #000;
+    border-radius: 15px;
+    margin: 0;
+    overflow: hidden;
+}
+
+.app {
+    background: #313244;
+    border-radius: 10px;
+    width: 420px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    overflow: hidden;
+}
+
+.header {
+    background: #45475a;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #89b4fa;
+}
+
+.header-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.header-buttons button {
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid #585b70;
+    border-radius: 4px;
+    background: #45475a;
+    color: #cdd6f4;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.header-buttons button:hover { background: #585b70; }
+
+.close-btn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: #f38ba8;
+    color: #1e1e2e;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 8px;
+    transition: background 0.15s;
+}
+.close-btn:hover { background: #eba0ac; }
+
+.unit-toggle-bar {
+    background: #3b3d52;
+    padding: 3px 16px;
+    padding-right: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.unit-toggle-bar label {
+    font-size: 11px;
+    color: #a6adc8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.unit-toggle-bar input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid #585b70;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+}
+.unit-toggle-bar input[type="radio"]:checked {
+    border-color: #89b4fa;
+}
+.unit-toggle-bar input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #89b4fa;
+}
+
+select.param-unit {
+    font-size: 11px;
+    color: #a6adc8;
+    background: #1e1e2e;
+    border: 1px solid #3b3d52;
+    border-radius: 3px;
+    padding: 1px 2px;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    text-align-last: center;
+    margin-left: 7px;
+}
+select.param-unit:hover { border-color: #585b70; }
+
+.section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #89b4fa;
+    padding: 6px 16px 1px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.params {
+    padding: 0 16px 4px;
+}
+
+.param-row {
+    display: grid;
+    grid-template-columns: 212px 108px 63px;
+    align-items: center;
+    gap: 3px 3px;
+    padding: 2px 0;
+    transition: opacity 0.2s;
+}
+
+.param-row.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.param-row.computed .param-value {
+    background: #1e3a1e;
+    border-color: #4caf50;
+}
+
+.param-label {
+    font-size: 12px;
+    color: #bac2de;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.param-value {
+    width: 100%;
+    font-size: 13px;
+    padding: 2px 6px;
+    border: 1px solid #585b70;
+    border-radius: 4px;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    text-align: right;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    transition: background 0.2s, border-color 0.2s;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+.param-value::-webkit-outer-spin-button,
+.param-value::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.param-value:focus {
+    outline: none;
+    border-color: #89b4fa;
+    background: #1e1e3e;
+}
+
+.param-value.input-selected {
+    border-color: #89b4fa;
+    background: #1e2f4d;
+    color: #b8d3ff;
+}
+
+.param-value.output {
+    background: #1e3a1e;
+    border-color: #4caf50;
+    color: #a6e3a1;
+}
+
+.param-value.conflict {
+    border-color: #f38ba8;
+    color: #f38ba8;
+}
+
+.param-unit {
+    font-size: 11px;
+    color: #a6adc8;
+    text-align: left;
+    white-space: nowrap;
+}
+span.param-unit {
+    text-align: center;
+    margin-left: 7px;
+}
+
+.status-bar {
+    padding: 6px 16px;
+    margin-top: 6px;
+    font-size: 9px;
+    color: #cdd6f4;
+    background: #45475a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.footer-note {
+    line-height: 1.3;
+    text-align: center;
+}
+
+#statusMsg {
+    min-height: 1.2em;
+}
+
+#statusMsg.visually-hidden {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    clip: auto;
+    white-space: nowrap;
+    border: 0;
+    visibility: hidden;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.status-bar .error { color: #f38ba8; }
+.status-bar .ok { color: #a6e3a1; }
+
+/* Separator line between sections */
+.section-sep {
+    height: 1px;
+    background: #45475a;
+    margin: 1px 16px;
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+<div class="app">
+    <div class="header">
+        <div style="display:flex;align-items:center;gap:14px;">
+            <svg width="20" height="20" viewBox="0 0 64 64" style="flex-shrink:0;border-radius:5px;" xmlns="http://www.w3.org/2000/svg">
+                <rect width="64" height="64" rx="10" fill="#313244"/>
+                <defs><linearGradient id="ab" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a7dd4"/><stop offset="1" stop-color="#f38ba8"/></linearGradient></defs>
+                <rect y="54" width="64" height="10" rx="0" fill="url(#ab)"/>
+                <text x="32" y="40" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="28" font-weight="600" fill="#89b4fa">WA</text>
+            </svg>
+            <h1>WinAtmos - v1.1</h1>
+        </div>
+        <div class="header-buttons">
+            <button onclick="clearAll()">Clear All</button>
+            <button onclick="calculate()">Calculate</button>
+            <button class="close-btn" onclick="if(window.pywebview){pywebview.api.close()}else{window.close()}" title="Close">✕</button>
+        </div>
+    </div>
+
+    <div class="unit-toggle-bar">
+        <label style="font-size:12px;color:#a6adc8;margin-right:6px;">Units:</label>
+        <label><input type="radio" name="unitSystem" value="US" checked onchange="setAllUnits('US')"> US</label>
+        <label><input type="radio" name="unitSystem" value="SI" onchange="setAllUnits('SI')"> SI</label>
+    </div>
+
+    <!-- Altitude -->
+    <div class="section-label">Altitude</div>
+    <div class="params">
+        <div class="param-row" id="row-altitude">
+            <span class="param-label">Altitude</span>
+            <input class="param-value" id="val-altitude" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-altitude" onchange="onRowUnitChange('altitude')"><option value="US">ft</option><option value="SI">m</option></select>
+        </div>
+        <div class="param-row" id="row-pressAmb">
+            <span class="param-label">Ambient Pressure</span>
+            <input class="param-value" id="val-pressAmb" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-pressAmb" onchange="onRowUnitChange('pressAmb')"><option value="US">psia</option><option value="SI">kPa</option></select>
+        </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Temperature -->
+    <div class="section-label">Temperature</div>
+    <div class="params">
+        <div class="param-row" id="row-tempAmb">
+            <span class="param-label">Ambient Temperature</span>
+            <input class="param-value" id="val-tempAmb" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-tempAmb" onchange="onRowUnitChange('tempAmb')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
+        </div>
+        <div class="param-row" id="row-tempStd">
+            <span class="param-label">Std Day Temperature</span>
+            <input class="param-value" id="val-tempStd" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-tempStd" onchange="onRowUnitChange('tempStd')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
+        </div>
+        <div class="param-row" id="row-deltaTemp">
+            <span class="param-label">ΔT (Actual − Std)</span>
+            <input class="param-value" id="val-deltaTemp" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-deltaTemp" onchange="onRowUnitChange('deltaTemp')"><option value="F">Δ°F</option><option value="R">Δ°R</option><option value="C">Δ°C</option><option value="K">ΔK</option></select>
+        </div>
+        <div class="param-row" id="row-sonicAmb">
+            <span class="param-label">Speed of Sound</span>
+            <input class="param-value" id="val-sonicAmb" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-sonicAmb" onchange="onRowUnitChange('sonicAmb')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
+        </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Density & Humidity -->
+    <div class="section-label">Density & Humidity</div>
+    <div class="params">
+        <div class="param-row" id="row-densAmb">
+            <span class="param-label">Ambient Density</span>
+            <input class="param-value" id="val-densAmb" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-densAmb" onchange="onRowUnitChange('densAmb')"><option value="US">lbm/ft³</option><option value="SI">kg/m³</option></select>
+        </div>
+        <div class="param-row" id="row-relHumidity">
+            <span class="param-label">Relative Humidity</span>
+            <input class="param-value" id="val-relHumidity" type="number" step="any" min="0" max="100" oninput="markInput(this)">
+            <span class="param-unit" id="unit-relHumidity">%</span>
+        </div>
+        <div class="param-row" id="row-absHumidity">
+            <span class="param-label">Absolute Humidity</span>
+            <input class="param-value" id="val-absHumidity" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-absHumidity" onchange="onRowUnitChange('absHumidity')"><option value="SI">g/m³</option><option value="US">gr/lb</option></select>
+        </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Velocity -->
+    <div class="section-label">Velocity</div>
+    <div class="params">
+        <div class="param-row" id="row-mach">
+            <span class="param-label">Mach Number</span>
+            <input class="param-value" id="val-mach" type="number" step="any" oninput="markInput(this)">
+            <span class="param-unit" id="unit-mach">—</span>
+        </div>
+        <div class="param-row" id="row-ias">
+            <span class="param-label">Indicated Airspeed (IAS)</span>
+            <input class="param-value" id="val-ias" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-ias" onchange="onRowUnitChange('ias')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
+        </div>
+        <div class="param-row" id="row-cas">
+            <span class="param-label">Calibrated Airspeed (CAS)</span>
+            <input class="param-value" id="val-cas" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-cas" onchange="onRowUnitChange('cas')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
+        </div>
+        <div class="param-row" id="row-eas">
+            <span class="param-label">Equivalent Airspeed (EAS)</span>
+            <input class="param-value" id="val-eas" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-eas" onchange="onRowUnitChange('eas')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
+        </div>
+        <div class="param-row" id="row-velocity">
+            <span class="param-label">True Airspeed (TAS)</span>
+            <input class="param-value" id="val-velocity" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-velocity" onchange="onRowUnitChange('velocity')"><option value="US">ft/s</option><option value="SI">m/s</option><option value="kts">knots</option><option value="mph">mph</option><option value="kph">kph</option></select>
+        </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Total (Stagnation) -->
+    <div class="section-label">Total (Stagnation) Properties</div>
+    <div class="params">
+        <div class="param-row" id="row-tempTotal">
+            <span class="param-label">Total Temperature</span>
+            <input class="param-value" id="val-tempTotal" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-tempTotal" onchange="onRowUnitChange('tempTotal')"><option value="F">°F</option><option value="R">°R</option><option value="C">°C</option><option value="K">K</option></select>
+        </div>
+        <div class="param-row" id="row-pressTotal">
+            <span class="param-label">Total Pressure</span>
+            <input class="param-value" id="val-pressTotal" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-pressTotal" onchange="onRowUnitChange('pressTotal')"><option value="US">psia</option><option value="SI">kPa</option></select>
+        </div>
+        <div class="param-row" id="row-densTotal">
+            <span class="param-label">Total Density</span>
+            <input class="param-value" id="val-densTotal" type="number" step="any" oninput="markInput(this)">
+            <select class="param-unit" id="unit-densTotal" onchange="onRowUnitChange('densTotal')"><option value="US">lbm/ft³</option><option value="SI">kg/m³</option></select>
+        </div>
+    </div>
+
+    <div class="section-sep"></div>
+
+    <!-- Ratios -->
+    <div class="section-label">Standard Day Ratios <span style="text-transform:none">(θ, δ, σ)</span></div>
+    <div class="params">
+        <div class="param-row" id="row-theta">
+            <span class="param-label">θ (T/T_SL)</span>
+            <input class="param-value" id="val-theta" type="number" step="any" oninput="markInput(this)">
+            <span class="param-unit" id="unit-theta">—</span>
+        </div>
+        <div class="param-row" id="row-delta">
+            <span class="param-label">δ (P/P_SL)</span>
+            <input class="param-value" id="val-delta" type="number" step="any" oninput="markInput(this)">
+            <span class="param-unit" id="unit-delta">—</span>
+        </div>
+        <div class="param-row" id="row-sigma">
+            <span class="param-label">σ (ρ/ρ_SL)</span>
+            <input class="param-value" id="val-sigma" type="number" step="any" oninput="markInput(this)">
+            <span class="param-unit" id="unit-sigma">—</span>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span class="footer-note">ISA 1976 &nbsp;&nbsp;—&nbsp;&nbsp; Dry Day Standard Atmosphere, with Humidity Corrections</span>
+        <span id="statusMsg" class="ok visually-hidden">Status: Converged</span>
+    </div>
+</div>
+</div>
+
+<script>
+// WinAtmos is a desktop-hosted web app.
+// The executable provides the native window shell; the calculator behavior lives here.
+
+// ============================================================
+// ISA 1976 Standard Atmosphere Model
+// All internal calculations in SI units, converted at I/O
+// ============================================================
+
+// --- Constants (SI) ---
+const G0     = 9.80665;       // m/s²  gravitational acceleration
+const R_AIR  = 287.05287;     // J/(kg·K) specific gas constant for air
+const GAMMA  = 1.4;           // ratio of specific heats
+const T_SL   = 288.15;        // K   sea-level temperature
+const P_SL   = 101325.0;      // Pa  sea-level pressure
+const RHO_SL = 1.225;         // kg/m³ sea-level density
+const A_SL   = Math.sqrt(GAMMA * R_AIR * T_SL); // m/s speed of sound at SL
+
+// ISA troposphere lapse rate
+const LAPSE_RATE = -0.0065; // K/m  (temperature decreases 6.5K per 1000m)
+const TROPO_TOP  = 11000;   // m    tropopause altitude
+const T_TROPO    = T_SL + LAPSE_RATE * TROPO_TOP; // ~216.65 K
+const P_TROPO    = P_SL * Math.pow(T_TROPO / T_SL, -G0 / (LAPSE_RATE * R_AIR));
+
+// Max altitude this model handles (stratosphere top for simplicity)
+const MAX_ALT = 32000; // m (~105,000 ft)
+
+// Stratosphere layers (above tropopause)
+// Layer 1: 11000-20000m, lapse = 0 (isothermal)
+// Layer 2: 20000-32000m, lapse = +0.001 K/m
+const STRATO1_TOP = 20000;
+const STRATO1_LAPSE = 0.0;
+const T_STRATO1 = T_TROPO; // isothermal
+const P_STRATO1 = P_TROPO * Math.exp(-G0 * (STRATO1_TOP - TROPO_TOP) / (R_AIR * T_TROPO));
+
+const STRATO2_LAPSE = 0.001; // K/m
+const T_STRATO2_BASE = T_STRATO1; // 216.65 K at 20 km
+
+function isaFromAltitude(h_m) {
+    // Returns {T, P, rho, a} in SI from geometric altitude in meters
+    let T, P;
+    if (h_m < 0) h_m = 0;
+
+    if (h_m <= TROPO_TOP) {
+        // Troposphere
+        T = T_SL + LAPSE_RATE * h_m;
+        P = P_SL * Math.pow(T / T_SL, -G0 / (LAPSE_RATE * R_AIR));
+    } else if (h_m <= STRATO1_TOP) {
+        // Lower stratosphere (isothermal)
+        T = T_TROPO;
+        P = P_TROPO * Math.exp(-G0 * (h_m - TROPO_TOP) / (R_AIR * T_TROPO));
+    } else if (h_m <= MAX_ALT) {
+        // Upper stratosphere (positive lapse)
+        T = T_STRATO2_BASE + STRATO2_LAPSE * (h_m - STRATO1_TOP);
+        P = P_STRATO1 * Math.pow(T / T_STRATO2_BASE, -G0 / (STRATO2_LAPSE * R_AIR));
+    } else {
+        T = T_STRATO2_BASE + STRATO2_LAPSE * (MAX_ALT - STRATO1_TOP);
+        P = P_STRATO1 * Math.pow(T / T_STRATO2_BASE, -G0 / (STRATO2_LAPSE * R_AIR));
+    }
+
+    const rho = P / (R_AIR * T);
+    const a = Math.sqrt(GAMMA * R_AIR * T);
+    return { T, P, rho, a };
+}
+
+function altFromPressure(P_pa) {
+    // Invert ISA: given pressure (Pa), find geometric altitude (m)
+    if (P_pa >= P_SL) return 0;
+
+    if (P_pa >= P_TROPO) {
+        // Troposphere
+        const ratio = P_pa / P_SL;
+        const exponent = (LAPSE_RATE * R_AIR) / (-G0);
+        const T = T_SL * Math.pow(ratio, exponent);
+        return (T - T_SL) / LAPSE_RATE;
+    } else if (P_pa >= P_STRATO1) {
+        // Lower stratosphere (isothermal)
+        return TROPO_TOP + (-R_AIR * T_TROPO / G0) * Math.log(P_pa / P_TROPO);
+    } else {
+        // Upper stratosphere
+        const ratio = P_pa / P_STRATO1;
+        const exponent = (STRATO2_LAPSE * R_AIR) / (-G0);
+        const T = T_STRATO2_BASE * Math.pow(ratio, exponent);
+        return STRATO1_TOP + (T - T_STRATO2_BASE) / STRATO2_LAPSE;
+    }
+}
+
+// ============================================================
+// Unit Conversion
+// ============================================================
+
+const UNITS = {
+    altitude: {
+        US: { label: "ft",      toSI: v => v * 0.3048,       fromSI: v => v / 0.3048 },
+        SI: { label: "m",       toSI: v => v,                fromSI: v => v },
+    },
+    temperature: {
+        F: { label: "°F", toSI: v => (v - 32) * 5/9 + 273.15, fromSI: v => (v - 273.15) * 9/5 + 32 },
+        R: { label: "°R", toSI: v => v * 5/9,                 fromSI: v => v * 9/5 },
+        C: { label: "°C", toSI: v => v + 273.15,          fromSI: v => v - 273.15 },
+        K: { label: "K",  toSI: v => v,                    fromSI: v => v },
+    },
+    pressure: {
+        US: { label: "psia",    toSI: v => v * 6894.757,     fromSI: v => v / 6894.757 },
+        SI: { label: "kPa",     toSI: v => v * 1000,         fromSI: v => v / 1000 },
+    },
+    density: {
+        US: { label: "lbm/ft³", toSI: v => v * 16.01846,     fromSI: v => v / 16.01846 },
+        SI: { label: "kg/m³",    toSI: v => v,               fromSI: v => v },
+    },
+    humidity: {
+        SI: { label: "g/m³",    toSI: v => v,                fromSI: v => v },
+        US: { label: "gr/lb",   toSI: v => v * 2.28835,      fromSI: v => v / 2.28835 },
+    },
+    speed: {
+        US:  { label: "ft/s",  toSI: v => v * 0.3048,        fromSI: v => v / 0.3048 },
+        SI:  { label: "m/s",   toSI: v => v,                 fromSI: v => v },
+        kts: { label: "knots", toSI: v => v * 0.514444,      fromSI: v => v / 0.514444 },
+        mph: { label: "mph",   toSI: v => v * 0.44704,       fromSI: v => v / 0.44704 },
+        kph: { label: "kph",   toSI: v => v / 3.6,           fromSI: v => v * 3.6 },
+    },
+    tempDelta: {
+        R: { label: "Δ°R", toSI: v => v * 5/9,  fromSI: v => v * 9/5 },
+        F: { label: "Δ°F", toSI: v => v * 5/9,  fromSI: v => v * 9/5 },
+        K: { label: "ΔK",  toSI: v => v,         fromSI: v => v },
+        C: { label: "Δ°C", toSI: v => v,         fromSI: v => v },
+    },
+    dimensionless: {
+        US: { label: "—", toSI: v => v, fromSI: v => v },
+        SI: { label: "—", toSI: v => v, fromSI: v => v },
+    },
+};
+
+// Map each param to its unit category
+const PARAM_UNITS = {
+    altitude:   "altitude",
+    tempStd:    "temperature",
+    tempAmb:    "temperature",
+    deltaTemp:  "tempDelta",
+    pressAmb:   "pressure",
+    densAmb:    "density",
+    relHumidity: "dimensionless",
+    absHumidity: "humidity",
+    sonicAmb:   "speed",
+    mach:       "dimensionless",
+    velocity:   "speed",
+    eas:        "speed",
+    cas:        "speed",
+    ias:        "speed",
+    tempTotal:  "temperature",
+    pressTotal: "pressure",
+    densTotal:  "density",
+    theta:      "dimensionless",
+    delta:      "dimensionless",
+    sigma:      "dimensionless",
+};
+
+function getParamUnit(param) {
+    const sel = document.getElementById("unit-" + param);
+    return (sel && sel.tagName === "SELECT") ? sel.value : "US";
+}
+
+function getUnit(param) {
+    const cat = PARAM_UNITS[param];
+    const key = getParamUnit(param);
+    if (cat === "temperature") return UNITS.temperature[key];
+    if (cat === "tempDelta") return UNITS.tempDelta[key];
+    return UNITS[cat][key];
+}
+
+function toSI(param, displayVal) {
+    return getUnit(param).toSI(displayVal);
+}
+
+function fromSI(param, siVal) {
+    return getUnit(param).fromSI(siVal);
+}
+
+// ============================================================
+// UI Helpers
+// ============================================================
+
+function getVal(id) {
+    const el = document.getElementById("val-" + id);
+    if (el.value === "" || el.value == null) return NaN;
+    return parseFloat(el.value);
+}
+
+function formatDisplayValue(id, val) {
+    const cat = PARAM_UNITS[id];
+    if (cat === "temperature" || cat === "tempDelta") {
+        return val.toFixed(1);
+    }
+    if (cat === "pressure") {
+        return val.toFixed(2);
+    }
+    if (cat === "density") {
+        return String(parseFloat(val.toPrecision(4)));
+    }
+    if (cat === "dimensionless") {
+        return id === "mach" ? val.toFixed(3) : String(parseFloat(val.toPrecision(4)));
+    }
+    if (cat === "speed") {
+        return val.toFixed(1);
+    }
+    if (cat === "humidity") {
+        return val.toFixed(3);
+    }
+    return String(parseFloat(val.toPrecision(5)));
+}
+
+function setVal(id, val, isOutput) {
+    const el = document.getElementById("val-" + id);
+    if (isNaN(val) || !isFinite(val)) {
+        el.value = "";
+        el.classList.remove("output");
+    } else {
+        const nextDisplayValue = formatDisplayValue(id, val);
+        const preserveInputSelection = isOutput && _userInputFields.has(id) && el.value === nextDisplayValue;
+
+        if (isOutput && !preserveInputSelection) {
+            _userInputFields.delete(id);
+            el.classList.remove("input-selected");
+        }
+
+        el.value = nextDisplayValue;
+
+        if (isOutput) {
+            if (preserveInputSelection) {
+                el.classList.remove("output");
+                el.classList.add("input-selected");
+            } else {
+                el.classList.add("output");
+            }
+        }
+    }
+}
+
+// Track which temp field was last manually edited: "tempAmb" or "deltaTemp"
+let _lastTempInput = null;
+// Track all fields the user has manually entered values into
+const _userInputFields = new Set();
+
+const MUTUALLY_EXCLUSIVE_INPUTS = {
+    altitude: ["pressAmb"],
+    pressAmb: ["altitude"],
+    tempAmb: ["deltaTemp", "sonicAmb"],
+    deltaTemp: ["tempAmb", "sonicAmb"],
+    sonicAmb: ["tempAmb", "deltaTemp"],
+};
+
+const STALE_OUTPUTS_BY_INPUT = {
+    altitude: ["pressAmb", "tempStd", "tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "theta", "delta", "sigma", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    pressAmb: ["altitude", "tempStd", "tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "theta", "delta", "sigma", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    tempAmb: ["deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    deltaTemp: ["tempAmb", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    sonicAmb: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    relHumidity: ["absHumidity", "densAmb", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    mach: ["velocity", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    velocity: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "eas", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    eas: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "cas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    cas: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "ias", "tempTotal", "pressTotal", "densTotal"],
+    ias: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "tempTotal", "pressTotal", "densTotal"],
+    tempTotal: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "pressTotal", "densTotal"],
+    pressTotal: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "densTotal"],
+    densTotal: ["tempAmb", "deltaTemp", "densAmb", "absHumidity", "sonicAmb", "mach", "velocity", "eas", "cas", "ias", "tempTotal", "pressTotal"],
+};
+
+function releaseInputById(fieldId, silent = false) {
+    const el = document.getElementById("val-" + fieldId);
+    if (!el) return;
+    _userInputFields.delete(fieldId);
+    el.classList.remove("input-selected");
+    el.classList.remove("output");
+    el.classList.remove("conflict");
+    if (document.activeElement === el) el.blur();
+    if (_lastTempInput === fieldId) _lastTempInput = null;
+    if (!silent) {
+        setStatus(`Released ${fieldId} as an input`, "ok");
+    }
+}
+
+function releaseConflictingInputs(fieldId) {
+    const conflictingIds = MUTUALLY_EXCLUSIVE_INPUTS[fieldId] || [];
+    conflictingIds.forEach(conflictingId => releaseInputById(conflictingId, true));
+}
+
+function clearOutputClassesById(fieldIds) {
+    fieldIds.forEach(fieldId => {
+        const el = document.getElementById("val-" + fieldId);
+        if (el) el.classList.remove("output");
+    });
+}
+
+function clearCalculatedStateOnEdit() {
+    clearOutputClass();
+    clearConflictClass();
+    setStatus("", "ok");
+}
+
+function markInput(el) {
+    const fieldId = el.id.replace("val-", "");
+    const staleOutputs = STALE_OUTPUTS_BY_INPUT[fieldId];
+    if (staleOutputs) {
+        clearOutputClassesById(staleOutputs);
+        clearConflictClass();
+        setStatus("", "ok");
+    } else {
+        clearCalculatedStateOnEdit();
+    }
+    releaseConflictingInputs(fieldId);
+    _userInputFields.add(fieldId);
+    el.classList.remove("output");
+    el.classList.remove("conflict");
+    el.classList.add("input-selected");
+    if (el.id === "val-tempAmb") _lastTempInput = "tempAmb";
+    else if (el.id === "val-deltaTemp") _lastTempInput = "deltaTemp";
+}
+
+function releaseInput(el) {
+    const fieldId = el.id.replace("val-", "");
+    releaseInputById(fieldId);
+}
+
+function focusAndSelectValue(el) {
+    el.focus();
+    requestAnimationFrame(() => el.select());
+}
+
+function toggleInputSelection(el) {
+    const fieldId = el.id.replace("val-", "");
+    if (_userInputFields.has(fieldId)) {
+        if (document.activeElement === el) {
+            releaseInput(el);
+        } else {
+            focusAndSelectValue(el);
+        }
+    } else {
+        markInput(el);
+        focusAndSelectValue(el);
+        setStatus(`Selected ${fieldId} as an input`, "ok");
+    }
+}
+
+function clearOutputClass() {
+    document.querySelectorAll(".param-value").forEach(el => el.classList.remove("output"));
+}
+
+function clearConflictClass() {
+    document.querySelectorAll(".param-value").forEach(el => el.classList.remove("conflict"));
+}
+
+function setRowEnabled(id, enabled) {
+    const row = document.getElementById("row-" + id);
+    if (enabled) {
+        row.classList.remove("disabled");
+    } else {
+        row.classList.add("disabled");
+    }
+}
+
+function enableAllRows() {
+    Object.keys(PARAM_UNITS).forEach(p => setRowEnabled(p, true));
+}
+
+function setStatus(msg, type) {
+    const el = document.getElementById("statusMsg");
+    if (!el) return;
+    if (type === "error") {
+        el.textContent = msg;
+        el.className = "error";
+        return;
+    }
+    if (msg === "converged") {
+        el.textContent = "Status: Converged";
+        el.className = "ok";
+        return;
+    }
+    el.textContent = "";
+    el.className = "ok visually-hidden";
+}
+
+// Track previous unit selection per param for live conversion
+const _prevParamUnits = {};
+(function() {
+    for (const p of Object.keys(PARAM_UNITS)) {
+        const sel = document.getElementById("unit-" + p);
+        _prevParamUnits[p] = sel && sel.tagName === "SELECT" ? sel.value : "US";
+    }
+})();
+
+function onRowUnitChange(param) {
+    const cat = PARAM_UNITS[param];
+    const newKey = document.getElementById("unit-" + param).value;
+    const oldKey = _prevParamUnits[param] || newKey;
+    _prevParamUnits[param] = newKey;
+
+    const raw = getVal(param);
+    if (!isNaN(raw)) {
+        const unitSet = (cat === "tempDelta") ? UNITS.tempDelta
+                      : (cat === "temperature") ? UNITS.temperature
+                      : UNITS[cat];
+        const siVal = unitSet[oldKey].toSI(raw);
+        const converted = unitSet[newKey].fromSI(siVal);
+        const isOutput = document.getElementById("val-" + param).classList.contains("output");
+        setVal(param, converted, isOutput);
+    }
+}
+
+function setAllUnits(system) {
+    const tempKey = system === "SI" ? "C" : "F";
+    for (const [param, cat] of Object.entries(PARAM_UNITS)) {
+        const sel = document.getElementById("unit-" + param);
+        if (!sel || sel.tagName !== "SELECT") continue;
+        let newVal;
+        if (cat === "temperature" || cat === "tempDelta") newVal = tempKey;
+        else if (cat === "dimensionless") continue;
+        else newVal = system;
+        if (sel.value !== newVal) {
+            sel.value = newVal;
+            onRowUnitChange(param);
+        }
+    }
+    document.querySelector('input[name="unitSystem"][value="' + system + '"]').checked = true;
+}
+
+// ============================================================
+// Calculation Functions
+// ============================================================
+
+function clearAll() {
+    document.querySelectorAll(".param-value").forEach(el => {
+        el.value = "";
+        el.classList.remove("output");
+        el.classList.remove("conflict");
+        el.classList.remove("input-selected");
+    });
+    _lastTempInput = null;
+    _userInputFields.clear();
+    enableAllRows();
+    setStatus("Cleared — ready for new inputs", "ok");
+}
+
+function calcFromAlt() {
+    clearOutputClass();
+    enableAllRows();
+
+    const altDisp = getVal("altitude");
+    if (isNaN(altDisp)) {
+        setStatus("Enter an altitude value first", "error");
+        return;
+    }
+
+    const h_m = toSI("altitude", altDisp);
+    if (h_m < 0 || h_m > MAX_ALT) {
+        setStatus(`Altitude out of range (0–${Math.round(fromSI("altitude", MAX_ALT))} ${getUnit("altitude").label})`, "error");
+        return;
+    }
+
+    const isa = isaFromAltitude(h_m);
+
+    // Standard day temperature
+    setVal("tempStd",  fromSI("tempStd", isa.T), true);
+    setVal("pressAmb", fromSI("pressAmb", isa.P), true);
+    setVal("densAmb",  fromSI("densAmb", isa.rho), true);
+    setVal("sonicAmb", fromSI("sonicAmb", isa.a), true);
+
+    // Actual temp / delta temp logic
+    const actualDisp = getVal("tempAmb");
+    const deltaTDisp = getVal("deltaTemp");
+    let T_actual_K = isa.T; // default to std day
+    if (_lastTempInput === "tempAmb" && !isNaN(actualDisp)) {
+        T_actual_K = toSI("tempAmb", actualDisp);
+        setVal("deltaTemp", fromSI("deltaTemp", T_actual_K - isa.T), true);
+    } else if (_lastTempInput === "deltaTemp" && !isNaN(deltaTDisp)) {
+        const dT_K = toSI("deltaTemp", deltaTDisp);
+        T_actual_K = isa.T + dT_K;
+        setVal("tempAmb", fromSI("tempAmb", T_actual_K), true);
+    } else {
+        // No user input — default actual = std, delta = 0
+        setVal("tempAmb", fromSI("tempAmb", isa.T), true);
+        setVal("deltaTemp", fromSI("deltaTemp", 0), true);
+    }
+
+    // Speed of sound uses actual temperature
+    const a_actual = Math.sqrt(GAMMA * R_AIR * T_actual_K);
+    setVal("sonicAmb", fromSI("sonicAmb", a_actual), true);
+
+    // Ratios
+    setVal("theta", isa.T / T_SL, true);
+    setVal("delta", isa.P / P_SL, true);
+    setVal("sigma", isa.rho / RHO_SL, true);
+
+    // Humidity
+    const humCorr = calcHumidity(T_actual_K, isa.P);
+
+    // Resolve Mach from any velocity/total property input
+    const isaActual = { T: T_actual_K, P: isa.P, rho: humCorr.rho, a: humCorr.a };
+    const M = resolveMach(isaActual);
+    if (!isNaN(M) && M >= 0) {
+        calcTotalFromMach(M, isaActual);
+    } else {
+        setVal("tempTotal", NaN);
+        setVal("pressTotal", NaN);
+        setVal("densTotal", NaN);
+        setRowEnabled("tempTotal", false);
+        setRowEnabled("pressTotal", false);
+        setRowEnabled("densTotal", false);
+    }
+
+    setStatus("Calculated standard day from altitude", "ok");
+}
+
+// Absolute humidity from RH, temperature (K), and pressure (Pa)
+// Uses Buck equation for saturation vapor pressure
+function calcHumidity(T_K, P_pa) {
+    const rhDisp = getVal("relHumidity");
+    const RH = isNaN(rhDisp) ? 0 : rhDisp / 100;
+    // Buck equation: saturation vapor pressure in Pa
+    const T_C = T_K - 273.15;
+    const Psat = 611.21 * Math.exp((18.678 - T_C / 234.5) * (T_C / (257.14 + T_C)));
+    const Pv = RH * Psat; // actual vapor pressure
+    // Absolute humidity (g/m³) = (Pv * Mv) / (R * T) * 1000
+    // Mv = 18.01528 g/mol, R = 8.31446 J/(mol·K)
+    const absH = (Pv * 18.01528) / (8.31446 * T_K); // g/m³
+    setVal("absHumidity", fromSI("absHumidity", absH), true);
+    if (isNaN(rhDisp)) {
+        setVal("relHumidity", 0, true);
+    }
+
+    // Virtual temperature correction for humid air
+    const validP = P_pa > 0 && !isNaN(P_pa);
+    const Tv = validP ? T_K / (1 - 0.378 * Pv / P_pa) : T_K;
+    const rho = validP ? P_pa / (R_AIR * Tv) : NaN;
+    const a = Math.sqrt(GAMMA * R_AIR * Tv);
+
+    // Update displayed density and speed of sound with corrections
+    if (!isNaN(rho)) setVal("densAmb", fromSI("densAmb", rho), true);
+    setVal("sonicAmb", fromSI("sonicAmb", a), true);
+
+    return { rho: rho, a: a };
+}
+
+function snapshotSelectedInputs() {
+    const snapshot = {};
+    _userInputFields.forEach(id => {
+        const el = document.getElementById("val-" + id);
+        if (el && el.value !== "") snapshot[id] = el.value;
+    });
+    return snapshot;
+}
+
+function computeHumidityState(T_K, P_pa, relHumidityPercent) {
+    const RH = isNaN(relHumidityPercent) ? 0 : relHumidityPercent / 100;
+    const T_C = T_K - 273.15;
+    const Psat = 611.21 * Math.exp((18.678 - T_C / 234.5) * (T_C / (257.14 + T_C)));
+    const Pv = RH * Psat;
+    const absH = (Pv * 18.01528) / (8.31446 * T_K);
+    const validP = P_pa > 0 && !isNaN(P_pa);
+    const Tv = validP ? T_K / (1 - 0.378 * Pv / P_pa) : T_K;
+    const rho = validP ? P_pa / (R_AIR * Tv) : NaN;
+    const a = Math.sqrt(GAMMA * R_AIR * Tv);
+    return { absH, rho, a };
+}
+
+function calcFromPressure() {
+    clearOutputClass();
+    enableAllRows();
+
+    const pDisp = getVal("pressAmb");
+    if (isNaN(pDisp)) {
+        setStatus("Enter an ambient pressure value first", "error");
+        return;
+    }
+
+    const P_pa = toSI("pressAmb", pDisp);
+    if (P_pa <= 0 || P_pa > P_SL * 1.01) {
+        setStatus("Pressure out of range", "error");
+        return;
+    }
+
+    const h_m = altFromPressure(P_pa);
+    const isa = isaFromAltitude(h_m);
+
+    setVal("altitude", fromSI("altitude", h_m), true);
+    setVal("tempStd", fromSI("tempStd", isa.T), true);
+    setVal("densAmb", fromSI("densAmb", isa.rho), true);
+
+    // Actual temp / delta temp logic
+    const actualDisp = getVal("tempAmb");
+    const deltaTDisp = getVal("deltaTemp");
+    let T_actual_K = isa.T;
+    if (_lastTempInput === "tempAmb" && !isNaN(actualDisp)) {
+        T_actual_K = toSI("tempAmb", actualDisp);
+        setVal("deltaTemp", fromSI("deltaTemp", T_actual_K - isa.T), true);
+    } else if (_lastTempInput === "deltaTemp" && !isNaN(deltaTDisp)) {
+        const dT_K = toSI("deltaTemp", deltaTDisp);
+        T_actual_K = isa.T + dT_K;
+        setVal("tempAmb", fromSI("tempAmb", T_actual_K), true);
+    } else {
+        setVal("tempAmb", fromSI("tempAmb", isa.T), true);
+        setVal("deltaTemp", fromSI("deltaTemp", 0), true);
+    }
+
+    const a_actual = Math.sqrt(GAMMA * R_AIR * T_actual_K);
+    setVal("sonicAmb", fromSI("sonicAmb", a_actual), true);
+
+    setVal("theta", isa.T / T_SL, true);
+    setVal("delta", isa.P / P_SL, true);
+    setVal("sigma", isa.rho / RHO_SL, true);
+
+    // Humidity
+    const humCorr = calcHumidity(T_actual_K, isa.P);
+
+    const isaActual = { T: T_actual_K, P: isa.P, rho: humCorr.rho, a: humCorr.a };
+    const M = resolveMach(isaActual);
+    if (!isNaN(M) && M >= 0) {
+        calcTotalFromMach(M, isaActual);
+    } else {
+        setVal("tempTotal", NaN);
+        setVal("pressTotal", NaN);
+        setVal("densTotal", NaN);
+        setRowEnabled("tempTotal", false);
+        setRowEnabled("pressTotal", false);
+        setRowEnabled("densTotal", false);
+    }
+
+    setStatus("Calculated standard day from pressure", "ok");
+}
+
+function calcTotalProps() {
+    clearOutputClass();
+    enableAllRows();
+
+    let isa = null;
+    let h_m = NaN;
+
+    // Try to get ambient conditions: from altitude, pressure, or direct temp input
+    const altDisp = getVal("altitude");
+    const pDisp = getVal("pressAmb");
+    const tDisp = getVal("tempAmb");
+    let T_actual_K = NaN;
+
+    if (!isNaN(altDisp)) {
+        h_m = toSI("altitude", altDisp);
+        isa = isaFromAltitude(h_m);
+        setVal("tempStd", fromSI("tempStd", isa.T), true);
+        setVal("pressAmb", fromSI("pressAmb", isa.P), true);
+        setVal("densAmb", fromSI("densAmb", isa.rho), true);
+        setVal("theta", isa.T / T_SL, true);
+        setVal("delta", isa.P / P_SL, true);
+        setVal("sigma", isa.rho / RHO_SL, true);
+
+        // Resolve actual temp
+        const actDisp = getVal("tempAmb");
+        const dtDisp = getVal("deltaTemp");
+        if (_lastTempInput === "tempAmb" && !isNaN(actDisp)) {
+            T_actual_K = toSI("tempAmb", actDisp);
+            setVal("deltaTemp", fromSI("deltaTemp", T_actual_K - isa.T), true);
+        } else if (_lastTempInput === "deltaTemp" && !isNaN(dtDisp)) {
+            T_actual_K = isa.T + toSI("deltaTemp", dtDisp);
+            setVal("tempAmb", fromSI("tempAmb", T_actual_K), true);
+        } else {
+            T_actual_K = isa.T;
+            setVal("tempAmb", fromSI("tempAmb", isa.T), true);
+            setVal("deltaTemp", fromSI("deltaTemp", 0), true);
+        }
+    } else if (!isNaN(pDisp)) {
+        const P_pa = toSI("pressAmb", pDisp);
+        h_m = altFromPressure(P_pa);
+        isa = isaFromAltitude(h_m);
+        setVal("altitude", fromSI("altitude", h_m), true);
+        setVal("tempStd", fromSI("tempStd", isa.T), true);
+        setVal("densAmb", fromSI("densAmb", isa.rho), true);
+        setVal("theta", isa.T / T_SL, true);
+        setVal("delta", isa.P / P_SL, true);
+        setVal("sigma", isa.rho / RHO_SL, true);
+
+        const actDisp = getVal("tempAmb");
+        const dtDisp = getVal("deltaTemp");
+        if (_lastTempInput === "tempAmb" && !isNaN(actDisp)) {
+            T_actual_K = toSI("tempAmb", actDisp);
+            setVal("deltaTemp", fromSI("deltaTemp", T_actual_K - isa.T), true);
+        } else if (_lastTempInput === "deltaTemp" && !isNaN(dtDisp)) {
+            T_actual_K = isa.T + toSI("deltaTemp", dtDisp);
+            setVal("tempAmb", fromSI("tempAmb", T_actual_K), true);
+        } else {
+            T_actual_K = isa.T;
+            setVal("tempAmb", fromSI("tempAmb", isa.T), true);
+            setVal("deltaTemp", fromSI("deltaTemp", 0), true);
+        }
+    } else if (!isNaN(tDisp)) {
+        // User gave actual temperature directly (no altitude/pressure)
+        T_actual_K = toSI("tempAmb", tDisp);
+        const a = Math.sqrt(GAMMA * R_AIR * T_actual_K);
+        isa = { T: T_actual_K, P: NaN, rho: NaN, a: a };
+        setVal("sonicAmb", fromSI("sonicAmb", a), true);
+    }
+
+    if (!isa) {
+        setStatus("Enter altitude, pressure, or temperature first", "error");
+        return;
+    }
+
+    // Humidity correction and actual temperature adjustments
+    if (!isNaN(T_actual_K)) {
+        const humCorr = calcHumidity(T_actual_K, isa.P);
+        isa = { T: T_actual_K, P: isa.P, rho: humCorr.rho, a: humCorr.a };
+    }
+
+    // Resolve Mach from any velocity/total property input
+    const M = resolveMach(isa);
+    if (isNaN(M) || M < 0) {
+        setStatus("Enter a Mach number, airspeed, or total property", "error");
+        return;
+    }
+
+    calcTotalFromMach(M, isa);
+    setStatus("Calculated total (stagnation) properties", "ok");
+}
+
+function calcTotalFromMach(M, isa) {
+    const factor = 1 + (GAMMA - 1) / 2 * M * M;
+    const Tt = isa.T * factor;
+    const Pt = isNaN(isa.P) ? NaN : isa.P * Math.pow(factor, GAMMA / (GAMMA - 1));
+    const rhoT = isNaN(isa.rho) ? NaN : isa.rho * Math.pow(factor, 1 / (GAMMA - 1));
+    const V = M * isa.a;  // TAS in m/s
+
+    // Equivalent Airspeed: EAS = TAS * sqrt(rho / rho_SL)
+    const EAS = isNaN(isa.rho) ? NaN : V * Math.sqrt(isa.rho / RHO_SL);
+
+    // Calibrated Airspeed: from impact pressure
+    // q_c = P * [(1 + (g-1)/2 * M^2)^(g/(g-1)) - 1]
+    // CAS = a_SL * sqrt( 2/(g-1) * [( q_c/P_SL + 1 )^((g-1)/g) - 1] )
+    let CAS = NaN;
+    if (!isNaN(isa.P)) {
+        const q_c = isa.P * (Math.pow(factor, GAMMA / (GAMMA - 1)) - 1);
+        CAS = A_SL * Math.sqrt((2 / (GAMMA - 1)) * (Math.pow(q_c / P_SL + 1, (GAMMA - 1) / GAMMA) - 1));
+    }
+
+    // Indicated Airspeed: IAS = CAS (assuming zero position/instrument error)
+    const IAS = CAS;
+
+    setVal("velocity", fromSI("velocity", V), true);
+    setVal("eas", isNaN(EAS) ? NaN : fromSI("eas", EAS), true);
+    setVal("cas", isNaN(CAS) ? NaN : fromSI("cas", CAS), true);
+    setVal("ias", isNaN(IAS) ? NaN : fromSI("ias", IAS), true);
+    setVal("tempTotal", fromSI("tempTotal", Tt), true);
+    setVal("pressTotal", isNaN(Pt) ? NaN : fromSI("pressTotal", Pt), true);
+    setVal("densTotal", isNaN(rhoT) ? NaN : fromSI("densTotal", rhoT), true);
+
+    if (!isNaN(M)) {
+        setVal("mach", M, getVal("mach") !== M);
+    }
+}
+
+// ============================================================
+// Unified Calculate
+// ============================================================
+
+function isUserInput(id) {
+    const el = document.getElementById("val-" + id);
+    return el && el.value !== "" && _userInputFields.has(id);
+}
+
+// ============================================================
+// Reverse Mach Calculations
+// ============================================================
+
+function resolveMach(isa) {
+    if (isUserInput("mach")) return getVal("mach");
+    if (isUserInput("velocity")) return toSI("velocity", getVal("velocity")) / isa.a;
+    if (isUserInput("eas") && !isNaN(isa.rho)) {
+        const EAS = toSI("eas", getVal("eas"));
+        return (EAS / Math.sqrt(isa.rho / RHO_SL)) / isa.a;
+    }
+    if (isUserInput("cas") && !isNaN(isa.P)) {
+        const CAS = toSI("cas", getVal("cas"));
+        const q_c = P_SL * (Math.pow(1 + (GAMMA - 1) / 2 * Math.pow(CAS / A_SL, 2), GAMMA / (GAMMA - 1)) - 1);
+        return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(q_c / isa.P + 1, (GAMMA - 1) / GAMMA) - 1));
+    }
+    if (isUserInput("ias") && !isNaN(isa.P)) {
+        const IAS = toSI("ias", getVal("ias"));
+        const q_c = P_SL * (Math.pow(1 + (GAMMA - 1) / 2 * Math.pow(IAS / A_SL, 2), GAMMA / (GAMMA - 1)) - 1);
+        return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(q_c / isa.P + 1, (GAMMA - 1) / GAMMA) - 1));
+    }
+    if (isUserInput("tempTotal")) {
+        const Tt = toSI("tempTotal", getVal("tempTotal"));
+        const ratio = Tt / isa.T;
+        return ratio >= 1 ? Math.sqrt(2 / (GAMMA - 1) * (ratio - 1)) : NaN;
+    }
+    if (isUserInput("pressTotal") && !isNaN(isa.P)) {
+        const Pt = toSI("pressTotal", getVal("pressTotal"));
+        return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(Pt / isa.P, (GAMMA - 1) / GAMMA) - 1));
+    }
+    if (isUserInput("densTotal") && !isNaN(isa.rho)) {
+        const rhoT = toSI("densTotal", getVal("densTotal"));
+        return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(rhoT / isa.rho, GAMMA - 1) - 1));
+    }
+    return NaN;
+}
+
+function factorFromMach(M) {
+    return 1 + (GAMMA - 1) / 2 * M * M;
+}
+
+function machFromTotalTemperature(Tt, T) {
+    const ratio = Tt / T;
+    return ratio >= 1 ? Math.sqrt(2 / (GAMMA - 1) * (ratio - 1)) : NaN;
+}
+
+function machFromTotalPressure(Pt, P) {
+    if (!(Pt > 0) || !(P > 0) || Pt < P) return NaN;
+    return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(Pt / P, (GAMMA - 1) / GAMMA) - 1));
+}
+
+function machFromTotalDensity(rhoT, rho) {
+    if (!(rhoT > 0) || !(rho > 0) || rhoT < rho) return NaN;
+    return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(rhoT / rho, GAMMA - 1) - 1));
+}
+
+function machFromCASValue(CAS, P) {
+    const q_c = P_SL * (Math.pow(1 + (GAMMA - 1) / 2 * Math.pow(CAS / A_SL, 2), GAMMA / (GAMMA - 1)) - 1);
+    return Math.sqrt(2 / (GAMMA - 1) * (Math.pow(q_c / P + 1, (GAMMA - 1) / GAMMA) - 1));
+}
+
+function machFromEASValue(EAS, P) {
+    return EAS / Math.sqrt(GAMMA * P / RHO_SL);
+}
+
+function staticTempFromTASAndMach(V, M) {
+    if (!isFinite(M) || Math.abs(M) < 1e-10) return NaN;
+    return Math.pow(V / M, 2) / (GAMMA * R_AIR);
+}
+
+function machFromTtAndTAS(Tt, V) {
+    const alpha = (GAMMA - 1) / 2;
+    const denom = GAMMA * R_AIR * Tt - alpha * V * V;
+    if (denom <= 0) return NaN;
+    return Math.sqrt((V * V) / denom);
+}
+
+function solveBisection(fn, low, high, iterations = 80) {
+    let left = low;
+    let right = high;
+    let fLeft = fn(left);
+    let fRight = fn(right);
+    if (!isFinite(fLeft) || !isFinite(fRight) || fLeft === 0 || fRight === 0 || fLeft * fRight > 0) {
+        return NaN;
+    }
+    for (let i = 0; i < iterations; i++) {
+        const mid = 0.5 * (left + right);
+        const fMid = fn(mid);
+        if (!isFinite(fMid)) return NaN;
+        if (Math.abs(fMid) < 1e-9) return mid;
+        if (fLeft * fMid <= 0) {
+            right = mid;
+            fRight = fMid;
+        } else {
+            left = mid;
+            fLeft = fMid;
+        }
+    }
+    return 0.5 * (left + right);
+}
+
+function casFromMachAndTotalPressure(M, Pt) {
+    const P = Pt / Math.pow(factorFromMach(M), GAMMA / (GAMMA - 1));
+    const q_c = Pt - P;
+    return A_SL * Math.sqrt((2 / (GAMMA - 1)) * (Math.pow(q_c / P_SL + 1, (GAMMA - 1) / GAMMA) - 1));
+}
+
+function easFromMachAndTotalPressure(M, Pt) {
+    const P = Pt / Math.pow(factorFromMach(M), GAMMA / (GAMMA - 1));
+    return M * Math.sqrt(GAMMA * P / RHO_SL);
+}
+
+function machFromPtAndCAS(Pt, CAS) {
+    return solveBisection(M => casFromMachAndTotalPressure(M, Pt) - CAS, 1e-6, 10);
+}
+
+function machFromPtAndEAS(Pt, EAS) {
+    return solveBisection(M => easFromMachAndTotalPressure(M, Pt) - EAS, 1e-6, 10);
+}
+
+function deriveSolvedValuesSI(state) {
+    const solved = {
+        altitude: state.altitude,
+        pressAmb: state.pressAmb,
+        tempStd: state.tempStd,
+        tempAmb: state.tempAmb,
+        deltaTemp: state.deltaTemp,
+        mach: state.mach,
+    };
+
+    if (!isNaN(state.altitude)) {
+        const isaStd = isaFromAltitude(state.altitude);
+        solved.theta = isaStd.T / T_SL;
+        solved.delta = isaStd.P / P_SL;
+        solved.sigma = isaStd.rho / RHO_SL;
+    }
+
+    if (!isNaN(state.tempAmb)) {
+        const relHumidityPercent = getVal("relHumidity");
+        const humidity = computeHumidityState(state.tempAmb, state.pressAmb, relHumidityPercent);
+        solved.relHumidity = isNaN(relHumidityPercent) ? 0 : relHumidityPercent;
+        solved.absHumidity = humidity.absH;
+        solved.densAmb = humidity.rho;
+        solved.sonicAmb = humidity.a;
+
+        if (!isNaN(state.mach)) {
+            const factor = factorFromMach(state.mach);
+            const velocity = state.mach * humidity.a;
+            solved.velocity = velocity;
+            solved.tempTotal = state.tempAmb * factor;
+            solved.densTotal = isNaN(humidity.rho) ? NaN : humidity.rho * Math.pow(factor, 1 / (GAMMA - 1));
+
+            if (!isNaN(state.pressAmb)) {
+                solved.pressTotal = state.pressAmb * Math.pow(factor, GAMMA / (GAMMA - 1));
+                solved.eas = isNaN(humidity.rho) ? NaN : velocity * Math.sqrt(humidity.rho / RHO_SL);
+                const q_c = state.pressAmb * (Math.pow(factor, GAMMA / (GAMMA - 1)) - 1);
+                solved.cas = A_SL * Math.sqrt((2 / (GAMMA - 1)) * (Math.pow(q_c / P_SL + 1, (GAMMA - 1) / GAMMA) - 1));
+                solved.ias = solved.cas;
+            }
+        }
+    }
+
+    return solved;
+}
+
+function getSolvedDisplayValue(id, solvedValues) {
+    const solvedSI = solvedValues[id];
+    if (isNaN(solvedSI) || !isFinite(solvedSI)) return null;
+    return formatDisplayValue(id, fromSI(id, solvedSI));
+}
+
+function findConflictingInputs(state, usedInputs, originalInputs) {
+    const solvedValues = deriveSolvedValuesSI(state);
+    const conflicts = [];
+
+    Object.entries(originalInputs).forEach(([id, originalDisplay]) => {
+        if (usedInputs.has(id)) return;
+        const solvedDisplay = getSolvedDisplayValue(id, solvedValues);
+        if (solvedDisplay === null || originalDisplay !== solvedDisplay) {
+            conflicts.push(id);
+        }
+    });
+
+    return conflicts;
+}
+
+function applyConflicts(conflicts, originalInputs) {
+    clearConflictClass();
+    conflicts.forEach(id => {
+        const el = document.getElementById("val-" + id);
+        if (!el) return;
+        if (Object.prototype.hasOwnProperty.call(originalInputs, id)) {
+            el.value = originalInputs[id];
+        }
+        _userInputFields.add(id);
+        el.classList.remove("output");
+        el.classList.add("input-selected");
+        el.classList.add("conflict");
+    });
+}
+
+function applyUsedInputs(usedInputs, originalInputs) {
+    usedInputs.forEach(id => {
+        if (!Object.prototype.hasOwnProperty.call(originalInputs, id)) return;
+        const el = document.getElementById("val-" + id);
+        if (!el) return;
+        el.value = originalInputs[id];
+        _userInputFields.add(id);
+        el.classList.remove("output");
+        el.classList.remove("conflict");
+        el.classList.add("input-selected");
+    });
+}
+
+function collectInputsSI() {
+    const read = id => isUserInput(id) ? toSI(id, getVal(id)) : NaN;
+    return {
+        altitude: read("altitude"),
+        pressAmb: read("pressAmb"),
+        tempAmb: read("tempAmb"),
+        deltaTemp: read("deltaTemp"),
+        sonicAmb: read("sonicAmb"),
+        mach: isUserInput("mach") ? getVal("mach") : NaN,
+        velocity: read("velocity"),
+        eas: read("eas"),
+        cas: read("cas"),
+        ias: read("ias"),
+        tempTotal: read("tempTotal"),
+        pressTotal: read("pressTotal"),
+        densTotal: read("densTotal"),
+    };
+}
+
+function solveStateFromInputs() {
+    const inputs = collectInputsSI();
+    const usedInputs = new Set();
+    let h = NaN;
+    let P = NaN;
+    let Tstd = NaN;
+    let T = NaN;
+    let M = NaN;
+
+    if (!isNaN(inputs.altitude)) {
+        usedInputs.add("altitude");
+        h = inputs.altitude;
+        if (h < 0 || h > MAX_ALT) {
+            return { error: `Altitude out of range (0–${Math.round(fromSI("altitude", MAX_ALT))} ${getUnit("altitude").label})` };
+        }
+        const isa = isaFromAltitude(h);
+        P = isa.P;
+        Tstd = isa.T;
+    } else if (!isNaN(inputs.pressAmb)) {
+        usedInputs.add("pressAmb");
+        P = inputs.pressAmb;
+        if (P <= 0 || P > P_SL * 1.01) {
+            return { error: "Pressure out of range" };
+        }
+        h = altFromPressure(P);
+        Tstd = isaFromAltitude(h).T;
+    }
+
+    if (!isNaN(inputs.tempAmb)) {
+        usedInputs.add("tempAmb");
+        T = inputs.tempAmb;
+    } else if (!isNaN(inputs.deltaTemp) && !isNaN(Tstd)) {
+        usedInputs.add("deltaTemp");
+        T = Tstd + inputs.deltaTemp;
+    } else if (!isNaN(inputs.sonicAmb)) {
+        usedInputs.add("sonicAmb");
+        T = (inputs.sonicAmb * inputs.sonicAmb) / (GAMMA * R_AIR);
+    }
+
+    if (!isNaN(inputs.mach)) {
+        usedInputs.add("mach");
+        M = inputs.mach;
+    } else if (!isNaN(inputs.tempTotal) && !isNaN(inputs.velocity)) {
+        usedInputs.add("tempTotal");
+        usedInputs.add("velocity");
+        M = machFromTtAndTAS(inputs.tempTotal, inputs.velocity);
+    }
+
+    if (isNaN(M) && !isNaN(P)) {
+        if (!isNaN(inputs.cas)) {
+            usedInputs.add("cas");
+            M = machFromCASValue(inputs.cas, P);
+        } else if (!isNaN(inputs.ias)) {
+            usedInputs.add("ias");
+            M = machFromCASValue(inputs.ias, P);
+        } else if (!isNaN(inputs.eas)) {
+            usedInputs.add("eas");
+            M = machFromEASValue(inputs.eas, P);
+        } else if (!isNaN(inputs.pressTotal)) {
+            usedInputs.add("pressTotal");
+            M = machFromTotalPressure(inputs.pressTotal, P);
+        }
+    }
+
+    if (isNaN(M) && isNaN(P) && !isNaN(inputs.pressTotal) && !isNaN(inputs.tempTotal)) {
+        if (!isNaN(inputs.cas)) {
+            usedInputs.add("pressTotal");
+            usedInputs.add("cas");
+            M = machFromPtAndCAS(inputs.pressTotal, inputs.cas);
+        } else if (!isNaN(inputs.ias)) {
+            usedInputs.add("pressTotal");
+            usedInputs.add("ias");
+            M = machFromPtAndCAS(inputs.pressTotal, inputs.ias);
+        } else if (!isNaN(inputs.eas)) {
+            usedInputs.add("pressTotal");
+            usedInputs.add("eas");
+            M = machFromPtAndEAS(inputs.pressTotal, inputs.eas);
+        }
+    }
+
+    if (isNaN(P) && !isNaN(inputs.pressTotal) && !isNaN(M)) {
+        usedInputs.add("pressTotal");
+        P = inputs.pressTotal / Math.pow(factorFromMach(M), GAMMA / (GAMMA - 1));
+        if (!(P > 0)) {
+            return { error: "Unable to resolve ambient pressure from total inputs" };
+        }
+        h = altFromPressure(P);
+        Tstd = isaFromAltitude(h).T;
+    }
+
+    if (isNaN(T) && !isNaN(inputs.tempTotal) && !isNaN(M)) {
+        usedInputs.add("tempTotal");
+        T = inputs.tempTotal / factorFromMach(M);
+    }
+
+    if (isNaN(T) && !isNaN(inputs.velocity) && !isNaN(M)) {
+        usedInputs.add("velocity");
+        T = staticTempFromTASAndMach(inputs.velocity, M);
+    }
+
+    if (isNaN(M) && !isNaN(P) && !isNaN(T)) {
+        if (!isNaN(inputs.velocity)) {
+            usedInputs.add("velocity");
+            M = inputs.velocity / Math.sqrt(GAMMA * R_AIR * T);
+        } else if (!isNaN(inputs.tempTotal)) {
+            usedInputs.add("tempTotal");
+            M = machFromTotalTemperature(inputs.tempTotal, T);
+        } else if (!isNaN(inputs.densTotal)) {
+            usedInputs.add("densTotal");
+            M = machFromTotalDensity(inputs.densTotal, P / (R_AIR * T));
+        }
+    }
+
+    if (isNaN(T) && !isNaN(Tstd)) {
+        T = Tstd;
+    }
+
+    if (isNaN(P) && isNaN(h) && isNaN(T)) {
+        return { error: "Enter altitude, pressure, temperature, or compatible total-property inputs" };
+    }
+
+    return {
+        altitude: h,
+        pressAmb: P,
+        tempStd: Tstd,
+        tempAmb: T,
+        deltaTemp: !isNaN(Tstd) && !isNaN(T) ? T - Tstd : NaN,
+        mach: M,
+        usedInputs: usedInputs,
+    };
+}
+
+function renderSolvedState(state, message) {
+    clearOutputClass();
+    clearConflictClass();
+    enableAllRows();
+
+    setVal("altitude", isNaN(state.altitude) ? NaN : fromSI("altitude", state.altitude), true);
+    setVal("pressAmb", isNaN(state.pressAmb) ? NaN : fromSI("pressAmb", state.pressAmb), true);
+    setVal("tempStd", isNaN(state.tempStd) ? NaN : fromSI("tempStd", state.tempStd), true);
+    setVal("tempAmb", isNaN(state.tempAmb) ? NaN : fromSI("tempAmb", state.tempAmb), true);
+    setVal("deltaTemp", isNaN(state.deltaTemp) ? NaN : fromSI("deltaTemp", state.deltaTemp), true);
+
+    if (!isNaN(state.altitude) && !isNaN(state.tempStd) && !isNaN(state.pressAmb)) {
+        const isa = isaFromAltitude(state.altitude);
+        setVal("theta", isa.T / T_SL, true);
+        setVal("delta", isa.P / P_SL, true);
+        setVal("sigma", isa.rho / RHO_SL, true);
+    } else {
+        setVal("theta", NaN);
+        setVal("delta", NaN);
+        setVal("sigma", NaN);
+    }
+
+    let isaActual = null;
+    if (!isNaN(state.tempAmb)) {
+        const humCorr = calcHumidity(state.tempAmb, state.pressAmb);
+        isaActual = {
+            T: state.tempAmb,
+            P: state.pressAmb,
+            rho: humCorr.rho,
+            a: humCorr.a,
+        };
+    } else {
+        setVal("absHumidity", NaN);
+        setVal("densAmb", NaN);
+        setVal("sonicAmb", NaN);
+    }
+
+    if (isaActual && !isNaN(state.mach)) {
+        calcTotalFromMach(state.mach, isaActual);
+    } else {
+        setVal("mach", isNaN(state.mach) ? NaN : state.mach, false);
+        setVal("velocity", NaN);
+        setVal("eas", NaN);
+        setVal("cas", NaN);
+        setVal("ias", NaN);
+        setVal("tempTotal", NaN);
+        setVal("pressTotal", NaN);
+        setVal("densTotal", NaN);
+    }
+
+    setStatus(message, "ok");
+}
+
+function calculate() {
+    const originalInputs = snapshotSelectedInputs();
+    const state = solveStateFromInputs();
+    if (state.error) {
+        setStatus(state.error, "error");
+        return;
+    }
+    const usedInputs = state.usedInputs || new Set();
+    const conflicts = findConflictingInputs(state, usedInputs, originalInputs);
+    const partial = isNaN(state.mach);
+    renderSolvedState(state, partial ? "Calculated available static properties from provided inputs" : "Calculated from provided inputs");
+    applyUsedInputs(usedInputs, originalInputs);
+    applyConflicts(conflicts, originalInputs);
+    if (conflicts.length) {
+        setStatus("Status: Unresolved Conflict", "error");
+    } else {
+        setStatus("converged", "ok");
+    }
+}
+
+// ============================================================
+// Init
+// ============================================================
+document.querySelectorAll(".param-value").forEach(el => {
+    el.addEventListener("keydown", e => {
+        if (e.key === "Escape") {
+            e.preventDefault();
+            releaseInput(el);
+        }
+    });
+    el.addEventListener("click", () => toggleInputSelection(el));
+});
+document.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        calculate();
+    }
+});
+setStatus("", "ok");
+
+// Register service worker for PWA / offline support
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js');
+}
+</script>
+</body>
+</html>
