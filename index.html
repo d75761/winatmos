@@ -341,7 +341,7 @@ span.param-unit {
                 <rect y="54" width="64" height="10" rx="0" fill="url(#ab)"/>
                 <text x="32" y="40" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="28" font-weight="600" fill="#89b4fa">WA</text>
             </svg>
-            <h1>WinAtmos - v1.1</h1>
+            <h1>WinAtmos - v1.2</h1>
         </div>
         <div class="header-buttons">
             <button onclick="clearAll()">Clear All</button>
@@ -1718,7 +1718,7 @@ document.querySelectorAll(".param-value").forEach(el => {
     });
     el.addEventListener("click", () => toggleInputSelection(el));
     el.addEventListener("blur", () => {
-        setTimeout(() => calculate(), 100);
+        setTimeout(() => calculate(), 150);
     });
 });
 document.addEventListener("keydown", e => {
@@ -1727,6 +1727,20 @@ document.addEventListener("keydown", e => {
         calculate();
     }
 });
+
+// iOS keyboard dismiss: detect viewport resize (keyboard show/hide)
+if (window.visualViewport) {
+    let lastH = window.visualViewport.height;
+    window.visualViewport.addEventListener("resize", () => {
+        const h = window.visualViewport.height;
+        if (h > lastH + 50) {
+            // keyboard closed — viewport got taller
+            setTimeout(() => calculate(), 150);
+        }
+        lastH = h;
+    });
+}
+
 setStatus("", "ok");
 
 // Register service worker for PWA / offline support
